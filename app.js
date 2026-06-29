@@ -26,7 +26,7 @@ const state = {
   questions: [],     // all fetched questions
   subjects: [],      // unique subjects
   // Exam config
-  examQuestionCount: 75,
+  examQuestionCount: 85,
   examSubject: 'All Subjects',
   // Exam runtime
   exam: null,        // CATEngine instance
@@ -428,20 +428,22 @@ function initSetupScreen() {
   $('#setup-welcome-name').textContent = `Welcome, ${name}!`;
   $('#setup-welcome-batch').textContent = batch ? `Batch: ${batch}` : 'Prepare for your NCLEX-RN exam';
 
-  // Populate subject dropdown
+  // Populate subject dropdown with question counts
   const sel = $('#setup-subject');
-  sel.innerHTML = '<option value="All Subjects">All Subjects</option>';
+  const totalCount = state.questions.length;
+  sel.innerHTML = `<option value="All Subjects">All (${totalCount} Questions)</option>`;
   state.subjects.forEach(s => {
+    const count = state.questions.filter(q => q.subject === s).length;
     const opt = document.createElement('option');
     opt.value = s;
-    opt.textContent = s;
+    opt.textContent = `${s} (${count} Questions)`;
     sel.appendChild(opt);
   });
 
   // Reset chip selection
   $$('.chip[data-count]').forEach(c => c.classList.remove('selected'));
-  $('[data-count="75"]').classList.add('selected');
-  state.examQuestionCount = 75;
+  $('[data-count="85"]').classList.add('selected');
+  state.examQuestionCount = 85;
   $('#custom-slider-box').classList.remove('visible');
 }
 
