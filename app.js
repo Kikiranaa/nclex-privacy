@@ -787,6 +787,9 @@ function renderResults(results, durationMinutes) {
   $('#stat-accuracy').textContent = `${(results.rawAccuracy * 100).toFixed(1)}%`;
   $('#stat-avg-diff').textContent = results.avgDifficulty.toFixed(1);
 
+  // NCSBN Test Plan Distribution
+  renderNCSBNDistribution(results);
+
   // Theta trajectory chart
   renderThetaChart(results);
 
@@ -795,6 +798,52 @@ function renderResults(results, durationMinutes) {
 
   // Question review
   renderQuestionReview(results);
+}
+
+// NCSBN 2026 Test Plan target percentages
+const NCSBN_CATEGORIES = [
+  { key: 'Management of Care', label: 'Management of Care', min: 17, max: 23 },
+  { key: 'Safety and Infection Control', label: 'Safety & Infection Control', min: 9, max: 15 },
+  { key: 'Health Promotion and Maintenance', label: 'Health Promotion', min: 6, max: 12 },
+  { key: 'Psychosocial Integrity', label: 'Psychosocial Integrity', min: 6, max: 12 },
+  { key: 'Basic Care and Comfort', label: 'Basic Care & Comfort', min: 6, max: 12 },
+  { key: 'Pharmacological and Parenteral Therapies', label: 'Pharmacological Therapies', min: 13, max: 19 },
+  { key: 'Reduction of Risk Potential', label: 'Reduction of Risk', min: 9, max: 15 },
+  { key: 'Physiological Adaptation', label: 'Physiological Adaptation', min: 11, max: 17 },
+];
+
+function renderNCSBNDistribution(results) {
+  const container = $('#ncsbn-distribution');
+  container.innerHTML = '';
+
+  const totalQ = results.totalQuestions;
+
+  for (const cat of NCSBN_CATEGORIES) {
+    const catResponses = results.responses.filter(r => {
+      const subj = r.question.subject || '';
+      return subj.startsWith(cat.key) || subj === cat.key;
+    });
+    const count = catResponses.length;
+    const pct = totalQ > 0 ? Math.round((count / totalQ) * 100) : 0;
+    const inRange = pct >= cat.min && pct <= cat.max;
+    const barClass = pct < cat.min ? 'below-range' : pct > cat.max ? 'above-range' : 'in-range';
+
+    const row = document.createElement('div');
+    row.className = 'ncsbn-row';
+    row.innerHTML = `
+      <span class="ncsbn-status-icon ${inRange ? 'ok' : 'warn'}">${inRange ? '✓' : '!'}</span>
+      <span class="ncsbn-label">${cat.label}</span>
+      <div class="ncsbn-bar-wrap">
+        <div class="ncsbn-target-zone" style="left: ${cat.min}%; width: ${cat.max - cat.min}%"></div>
+        <div class="ncsbn-actual-bar ${barClass}" style="width: ${Math.min(pct, 100)}%"></div>
+      </div>
+      <span class="ncsbn-stat">
+        <span class="count">${count} (${pct}%)</span>
+        <span class="target">Target ${cat.min}-${cat.max}%</span>
+      </span>
+    `;
+    container.appendChild(row);
+  }
 }
 
 function renderThetaChart(results) {
