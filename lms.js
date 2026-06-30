@@ -230,8 +230,8 @@ const LMS = {
 
     const titles = {
       dashboard: 'Dashboard', setup: 'Start Exam', study: 'Study Mode',
-      bookmarks: 'Bookmarks', quiz: 'CAT Exam', results: 'Results', history: 'Exam History',
-      settings: 'Settings',
+      bookmarks: 'Bookmarks', analytics: 'Analytics', quiz: 'CAT Exam',
+      results: 'Results', history: 'Exam History', settings: 'Settings',
     };
     $('#topbar-title').textContent = titles[page] || 'Dashboard';
 
@@ -240,6 +240,7 @@ const LMS = {
     $('#sidebar-overlay').classList.remove('open');
 
     if (page === 'dashboard') this.refreshDashboard();
+    if (page === 'analytics') Analytics.refresh();
     if (page === 'history') this.refreshHistory();
     if (page === 'setup') initSetupScreen();
     if (page === 'study') StudyMode.init();
@@ -264,6 +265,17 @@ const LMS = {
     $('#dash-pass-rate').textContent = totalExams > 0 ? `${Math.round(passCount / totalExams * 100)}%` : '--';
     $('#dash-avg-accuracy').textContent = totalExams > 0 ? `${avgAcc}%` : '--';
     $('#dash-best-theta').textContent = totalExams > 0 ? `${bestTheta >= 0 ? '+' : ''}${bestTheta.toFixed(2)}` : '--';
+
+    // Progress tracker
+    const progress = getStudyStreak();
+    $('#dash-streak').textContent = progress.streak;
+    $('#dash-total-days').textContent = progress.totalDays;
+    let totalQ = 0, totalTime = 0;
+    history.forEach(h => { totalQ += h.totalQuestions; totalTime += h.durationMinutes || 0; });
+    $('#dash-total-q').textContent = totalQ;
+    const pHrs = Math.floor(totalTime / 60);
+    const pMins = Math.round(totalTime % 60);
+    $('#dash-study-time').textContent = pHrs > 0 ? `${pHrs}h ${pMins}m` : `${pMins}m`;
 
     // Recent exams
     const listEl = $('#dash-recent-list');
@@ -495,9 +507,39 @@ const LMS = {
       return;
     }
 
-    listEl.innerHTML = history.slice().reverse().map(h => {
+    listEl.innerHTML = history.slice().reverse().map((h, idx) => {
       const date = new Date(h.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-      return `<div class="history-item">
+      let detailHTML = '';
+      if (h.responses && h.responses.length > 0) {
+        const catMap = {};
+        const diffMap = { 1: { t: 0, c: 0 }, 2: { t: 0, c: 0 }, 3: { t: 0, c: 0 }, 4: { t: 0, c: 0 }, 5: { t: 0, c: 0 } };
+        h.responses.forEach(r => {
+          const cat = r.question?.category || r.question?.subject || 'General';
+          if (!catMap[cat]) catMap[cat] = { total: 0, correct: 0 };
+          catMap[cat].total++;
+          if (r.isCorrect) catMap[cat].correct++;
+          const d = r.difficulty || 3;
+          if (diffMap[d]) { diffMap[d].t++; if (r.isCorrect) diffMap[d].c++; }
+        });
+        const catRows = Object.entries(catMap).sort((a, b) => b[1].total - a[1].total).map(([cat, d]) => {
+          const pct = Math.round(d.correct / d.total * 100);
+          const cls = pct >= 70 ? 'high' : pct >= 50 ? 'mid' : 'low';
+          return `<tr><td>${cat}</td><td>${d.correct}/${d.total}</td><td><span class="hist-pct ${cls}">${pct}%</span></td></tr>`;
+        }).join('');
+        const diffLabels = ['Easy', 'Medium-Easy', 'Medium', 'Medium-Hard', 'Hard'];
+        const diffBars = [1,2,3,4,5].filter(d => diffMap[d].t > 0).map(d => {
+          const pct = Math.round(diffMap[d].c / diffMap[d].t * 100);
+          return `<div class="hist-diff-row"><span class="hist-diff-label">${diffLabels[d - 1]}</span><div class="hist-diff-track"><div class="hist-diff-fill diff-${d}" style="width:${diffMap[d].t / h.responses.length * 100}%"></div></div><span class="hist-diff-stat">${diffMap[d].c}/${diffMap[d].t} (${pct}%)</span></div>`;
+        }).join('');
+        detailHTML = `<div class="history-detail" id="hist-detail-${idx}">
+          <div class="hist-detail-grid">
+            <div class="hist-detail-section"><h4>Category Breakdown</h4><table class="hist-detail-table"><thead><tr><th>Category</th><th>Score</th><th>Accuracy</th></tr></thead><tbody>${catRows}</tbody></table></div>
+            <div class="hist-detail-section"><h4>Difficulty Distribution</h4>${diffBars}<div class="hist-detail-meta"><span>Stop Reason: ${h.stopReason || 'Completed'}</span><span>SE: ±${h.finalSE?.toFixed(3) || '?'}</span><span>Pass Prob: ${Math.round((h.passProbability || 0) * 100)}%</span></div></div>
+          </div>
+        </div>`;
+      }
+      return `<div class="history-item-wrap">
+        <div class="history-item ${h.responses ? 'expandable' : ''}" onclick="${h.responses ? `toggleHistoryDetail(${idx})` : ''}">
         <div class="history-item-badge ${h.passed ? 'pass' : 'fail'}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             ${h.passed ? '<path d="M20 6L9 17l-5-5"/>' : '<path d="M18 6L6 18M6 6l12 12"/>'}
@@ -523,7 +565,8 @@ const LMS = {
           <div class="history-item-stat-val" style="color:${h.passed ? 'var(--nca-green)' : 'var(--nca-red)'}">${h.passed ? 'PASS' : 'FAIL'}</div>
           <div class="history-item-stat-label">Result</div>
         </div>
-      </div>`;
+        ${h.responses ? '<svg class="hist-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><polyline points="6 9 12 15 18 9"/></svg>' : ''}
+      </div>${detailHTML}</div>`;
     }).join('');
   },
 };
@@ -1525,6 +1568,266 @@ const StudyMode = {
 // =====================================================================
 //  SETTINGS
 // =====================================================================
+// =====================================================================
+//  HISTORY DETAIL TOGGLE
+// =====================================================================
+function toggleHistoryDetail(idx) {
+  const el = document.getElementById('hist-detail-' + idx);
+  if (!el) return;
+  const wrap = el.closest('.history-item-wrap');
+  wrap.classList.toggle('expanded');
+}
+
+// =====================================================================
+//  ANALYTICS
+// =====================================================================
+const Analytics = {
+  refresh() {
+    const history = getExamHistory();
+
+    // Summary stats
+    let totalQ = 0, totalTime = 0;
+    history.forEach(h => {
+      totalQ += h.totalQuestions;
+      totalTime += h.durationMinutes || 0;
+    });
+    $('#ana-total-questions').textContent = totalQ;
+    const hrs = Math.floor(totalTime / 60);
+    const mins = Math.round(totalTime % 60);
+    $('#ana-total-time').textContent = hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`;
+
+    // Streak calculation
+    const streak = this.calcStreak(history);
+    $('#ana-streak').textContent = streak;
+
+    // Improvement (first vs last theta)
+    if (history.length >= 2) {
+      const first = history[0].finalTheta;
+      const last = history[history.length - 1].finalTheta;
+      const diff = last - first;
+      const sign = diff >= 0 ? '+' : '';
+      $('#ana-improvement').textContent = `${sign}${diff.toFixed(2)}`;
+      $('#ana-improvement').style.color = diff >= 0 ? 'var(--nca-green)' : 'var(--nca-red)';
+    } else {
+      $('#ana-improvement').textContent = '--';
+      $('#ana-improvement').style.color = '';
+    }
+
+    this.renderAccuracyChart(history);
+    this.renderDifficultyChart(history);
+    this.renderCategoryTable(history);
+    this.renderActivityGrid(history);
+  },
+
+  calcStreak(history) {
+    if (history.length === 0) return 0;
+    const days = new Set();
+    history.forEach(h => {
+      days.add(new Date(h.date).toISOString().slice(0, 10));
+    });
+    const sorted = [...days].sort().reverse();
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (sorted[0] !== today && sorted[0] !== yesterday) return 0;
+    let streak = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = new Date(sorted[i - 1]);
+      const curr = new Date(sorted[i]);
+      const diffDays = (prev - curr) / 86400000;
+      if (diffDays === 1) streak++;
+      else break;
+    }
+    return streak;
+  },
+
+  renderAccuracyChart(history) {
+    if (history.length < 2) {
+      $('#ana-accuracy-empty').style.display = '';
+      $('#ana-accuracy-chart-wrap').style.display = 'none';
+      return;
+    }
+    $('#ana-accuracy-empty').style.display = 'none';
+    $('#ana-accuracy-chart-wrap').style.display = 'block';
+
+    const ctx = document.getElementById('ana-accuracy-chart').getContext('2d');
+    if (window._anaAccChart) window._anaAccChart.destroy();
+
+    const labels = history.map(h => new Date(h.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+    const accData = history.map(h => Math.round(h.rawAccuracy * 100));
+    const thetaData = history.map(h => Math.round(h.finalTheta * 100) / 100);
+
+    window._anaAccChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Accuracy %', data: accData, yAxisID: 'y',
+            borderColor: '#28A060', backgroundColor: 'rgba(40,160,96,.1)',
+            fill: true, tension: 0.3, pointRadius: 5, pointHoverRadius: 8, borderWidth: 2.5,
+          },
+          {
+            label: 'Ability (θ)', data: thetaData, yAxisID: 'y1',
+            borderColor: '#0056B3', backgroundColor: 'transparent',
+            fill: false, tension: 0.3, pointRadius: 4, borderWidth: 2, borderDash: [5, 5],
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+        scales: {
+          y: { min: 0, max: 100, position: 'left', grid: { color: '#e8ecf0' }, ticks: { font: { size: 10 }, callback: v => v + '%' }, title: { display: true, text: 'Accuracy', font: { size: 10 } } },
+          y1: { min: -3, max: 3, position: 'right', grid: { display: false }, ticks: { font: { size: 10 } }, title: { display: true, text: 'Ability (θ)', font: { size: 10 } } },
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+        }
+      }
+    });
+  },
+
+  renderDifficultyChart(history) {
+    const allResponses = [];
+    history.forEach(h => { if (h.responses) allResponses.push(...h.responses); });
+    if (allResponses.length === 0) {
+      $('#ana-difficulty-empty').style.display = '';
+      $('#ana-difficulty-chart-wrap').style.display = 'none';
+      return;
+    }
+    $('#ana-difficulty-empty').style.display = 'none';
+    $('#ana-difficulty-chart-wrap').style.display = 'block';
+
+    const diffMap = { 1: { t: 0, c: 0 }, 2: { t: 0, c: 0 }, 3: { t: 0, c: 0 }, 4: { t: 0, c: 0 }, 5: { t: 0, c: 0 } };
+    allResponses.forEach(r => {
+      const d = r.difficulty || 3;
+      if (diffMap[d]) { diffMap[d].t++; if (r.isCorrect) diffMap[d].c++; }
+    });
+
+    const ctx = document.getElementById('ana-difficulty-chart').getContext('2d');
+    if (window._anaDiffChart) window._anaDiffChart.destroy();
+
+    const labels = ['Easy', 'Med-Easy', 'Medium', 'Med-Hard', 'Hard'];
+    const totals = [1,2,3,4,5].map(d => diffMap[d].t);
+    const corrects = [1,2,3,4,5].map(d => diffMap[d].c);
+    const incorrects = [1,2,3,4,5].map(d => diffMap[d].t - diffMap[d].c);
+
+    window._anaDiffChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Correct', data: corrects, backgroundColor: 'rgba(40,160,96,.7)', borderRadius: 4 },
+          { label: 'Incorrect', data: incorrects, backgroundColor: 'rgba(204,48,48,.5)', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+        scales: {
+          x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+          y: { stacked: true, beginAtZero: true, grid: { color: '#e8ecf0' }, ticks: { font: { size: 10 } } }
+        }
+      }
+    });
+  },
+
+  renderCategoryTable(history) {
+    const allResponses = [];
+    history.forEach(h => { if (h.responses) allResponses.push(...h.responses); });
+    if (allResponses.length === 0) {
+      $('#ana-category-empty').style.display = '';
+      $('#ana-category-table-wrap').style.display = 'none';
+      return;
+    }
+    $('#ana-category-empty').style.display = 'none';
+    $('#ana-category-table-wrap').style.display = '';
+
+    const catMap = {};
+    history.forEach(h => {
+      if (!h.responses) return;
+      h.responses.forEach(r => {
+        const cat = r.question?.category || r.question?.subject || 'General';
+        if (!catMap[cat]) catMap[cat] = { total: 0, correct: 0, recent: [] };
+        catMap[cat].total++;
+        if (r.isCorrect) catMap[cat].correct++;
+        catMap[cat].recent.push(r.isCorrect ? 1 : 0);
+      });
+    });
+
+    const rows = Object.entries(catMap).sort((a, b) => b[1].total - a[1].total);
+    const tbody = $('#ana-category-tbody');
+    tbody.innerHTML = rows.map(([cat, d]) => {
+      const pct = Math.round(d.correct / d.total * 100);
+      const cls = pct >= 70 ? 'high' : pct >= 50 ? 'mid' : 'low';
+      const last5 = d.recent.slice(-5);
+      const trendDots = last5.map(v => `<span class="ana-dot ${v ? 'correct' : 'wrong'}"></span>`).join('');
+      return `<tr>
+        <td>${cat}</td>
+        <td>${d.total}</td>
+        <td>${d.correct}</td>
+        <td><span class="hist-pct ${cls}">${pct}%</span></td>
+        <td><div class="ana-trend-dots">${trendDots}</div></td>
+      </tr>`;
+    }).join('');
+  },
+
+  renderActivityGrid(history) {
+    if (history.length === 0) {
+      $('#ana-activity-empty').style.display = '';
+      $('#ana-activity-wrap').style.display = 'none';
+      return;
+    }
+    $('#ana-activity-empty').style.display = 'none';
+    $('#ana-activity-wrap').style.display = '';
+
+    const dayMap = {};
+    history.forEach(h => {
+      const day = new Date(h.date).toISOString().slice(0, 10);
+      dayMap[day] = (dayMap[day] || 0) + h.totalQuestions;
+    });
+
+    const grid = $('#ana-activity-grid');
+    const today = new Date();
+    const cells = [];
+    for (let i = 89; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      const count = dayMap[key] || 0;
+      let level = 0;
+      if (count > 0) level = 1;
+      if (count >= 10) level = 2;
+      if (count >= 30) level = 3;
+      if (count >= 60) level = 4;
+      const label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      cells.push(`<div class="ana-cell l${level}" title="${label}: ${count} questions"></div>`);
+    }
+    grid.innerHTML = cells.join('');
+  },
+};
+
+// =====================================================================
+//  PROGRESS TRACKING (localStorage)
+// =====================================================================
+function getStudyStreak() {
+  const history = getExamHistory();
+  if (history.length === 0) return { streak: 0, totalDays: 0 };
+  const days = new Set();
+  history.forEach(h => days.add(new Date(h.date).toISOString().slice(0, 10)));
+  const sorted = [...days].sort().reverse();
+  const today = new Date().toISOString().slice(0, 10);
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  let streak = 0;
+  if (sorted[0] === today || sorted[0] === yesterday) {
+    streak = 1;
+    for (let i = 1; i < sorted.length; i++) {
+      const diff = (new Date(sorted[i - 1]) - new Date(sorted[i])) / 86400000;
+      if (diff === 1) streak++;
+      else break;
+    }
+  }
+  return { streak, totalDays: days.size };
+}
+
 const Settings = {
   refresh() {
     $('#settings-name').textContent = state.candidate?.name || 'Student';

@@ -972,6 +972,150 @@ kbd {
   flex-shrink: 0; align-self: center;
 }
 
+/* ======================================================
+   PROGRESS TRACKER (Dashboard)
+   ====================================================== */
+.progress-tracker {
+  display: flex; align-items: center; gap: 0;
+  background: #fff; border-radius: var(--radius); padding: 16px 24px;
+  box-shadow: var(--shadow-sm); margin-bottom: 24px;
+}
+.progress-item {
+  display: flex; align-items: center; gap: 12px; flex: 1; justify-content: center;
+}
+.progress-icon {
+  width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+}
+.progress-icon.streak { background: rgba(217,119,6,.1); color: var(--nca-amber); }
+.progress-icon.days { background: rgba(0,86,179,.08); color: var(--nca-blue); }
+.progress-icon.questions { background: rgba(124,58,237,.08); color: var(--nca-purple); }
+.progress-icon.time { background: rgba(40,160,96,.08); color: var(--nca-green); }
+.progress-value { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+.progress-label { font-size: .78rem; color: var(--nca-grey); }
+.progress-divider { width: 1px; height: 40px; background: #e8ecf0; margin: 0 8px; }
+
+@media (max-width: 768px) {
+  .progress-tracker { flex-wrap: wrap; gap: 12px; padding: 16px; }
+  .progress-item { flex: 0 0 calc(50% - 12px); justify-content: flex-start; }
+  .progress-divider { display: none; }
+}
+
+/* ======================================================
+   ANALYTICS PAGE
+   ====================================================== */
+.analytics-header { margin-bottom: 24px; }
+.analytics-header h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+.analytics-header p { color: var(--nca-grey); font-size: .9rem; }
+
+.ana-table {
+  width: 100%; border-collapse: collapse; font-size: .88rem;
+}
+.ana-table th {
+  text-align: left; padding: 10px 12px; font-weight: 600; font-size: .78rem;
+  text-transform: uppercase; letter-spacing: .5px; color: var(--nca-grey);
+  border-bottom: 2px solid #e8ecf0;
+}
+.ana-table td {
+  padding: 10px 12px; border-bottom: 1px solid #f0f2f5;
+}
+.ana-table tr:last-child td { border-bottom: none; }
+.ana-table tr:hover td { background: rgba(0,86,179,.03); }
+
+.ana-trend-dots { display: flex; gap: 4px; align-items: center; }
+.ana-dot {
+  width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+}
+.ana-dot.correct { background: var(--nca-green); }
+.ana-dot.wrong { background: var(--nca-red); }
+
+.hist-pct { font-weight: 600; padding: 2px 8px; border-radius: 12px; font-size: .82rem; }
+.hist-pct.high { background: rgba(40,160,96,.1); color: var(--nca-green); }
+.hist-pct.mid { background: rgba(217,119,6,.1); color: var(--nca-amber); }
+.hist-pct.low { background: rgba(204,48,48,.1); color: var(--nca-red); }
+
+/* Activity Grid */
+.ana-activity-grid {
+  display: grid; grid-template-columns: repeat(18, 1fr); gap: 3px; margin-bottom: 12px;
+}
+.ana-cell {
+  aspect-ratio: 1; border-radius: 3px; min-width: 0;
+}
+.ana-cell.l0 { background: #eef2f7; }
+.ana-cell.l1 { background: rgba(0,86,179,.2); }
+.ana-cell.l2 { background: rgba(0,86,179,.4); }
+.ana-cell.l3 { background: rgba(0,86,179,.65); }
+.ana-cell.l4 { background: rgba(0,86,179,.9); }
+
+.ana-activity-legend {
+  display: flex; align-items: center; gap: 4px; justify-content: flex-end;
+  font-size: .75rem; color: var(--nca-grey);
+}
+.ana-legend-box { width: 14px; height: 14px; border-radius: 3px; }
+.ana-legend-box.l0 { background: #eef2f7; }
+.ana-legend-box.l1 { background: rgba(0,86,179,.2); }
+.ana-legend-box.l2 { background: rgba(0,86,179,.4); }
+.ana-legend-box.l3 { background: rgba(0,86,179,.65); }
+.ana-legend-box.l4 { background: rgba(0,86,179,.9); }
+
+@media (max-width: 768px) {
+  .ana-activity-grid { grid-template-columns: repeat(10, 1fr); }
+}
+
+/* ======================================================
+   ENHANCED HISTORY — Expandable Details
+   ====================================================== */
+.history-item-wrap { margin-bottom: 0; }
+.history-item.expandable { cursor: pointer; }
+.hist-expand-icon {
+  flex-shrink: 0; color: var(--nca-grey); transition: transform .2s ease; margin-left: 8px;
+}
+.history-item-wrap.expanded .hist-expand-icon { transform: rotate(180deg); }
+
+.history-detail {
+  max-height: 0; overflow: hidden; transition: max-height .35s ease, padding .25s ease;
+  background: #f8fafc; border-top: 1px solid #e8ecf0; padding: 0 20px;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.history-item-wrap.expanded .history-detail {
+  max-height: 600px; padding: 20px;
+}
+.hist-detail-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+@media (max-width: 768px) {
+  .hist-detail-grid { grid-template-columns: 1fr; }
+}
+.hist-detail-section h4 {
+  font-size: .85rem; font-weight: 700; margin-bottom: 10px; color: var(--nca-blue);
+}
+.hist-detail-table {
+  width: 100%; border-collapse: collapse; font-size: .82rem;
+}
+.hist-detail-table th {
+  text-align: left; padding: 6px 8px; font-weight: 600; font-size: .72rem;
+  text-transform: uppercase; letter-spacing: .5px; color: var(--nca-grey);
+  border-bottom: 1px solid #e8ecf0;
+}
+.hist-detail-table td {
+  padding: 6px 8px; border-bottom: 1px solid #f0f2f5;
+}
+.hist-detail-table tr:last-child td { border-bottom: none; }
+
+.hist-diff-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.hist-diff-label { width: 90px; font-size: .78rem; font-weight: 500; flex-shrink: 0; }
+.hist-diff-track { flex: 1; height: 8px; background: #e8ecf0; border-radius: 4px; overflow: hidden; }
+.hist-diff-fill { height: 100%; border-radius: 4px; }
+.hist-diff-fill.diff-1 { background: var(--nca-green); }
+.hist-diff-fill.diff-2 { background: #3B82F6; }
+.hist-diff-fill.diff-3 { background: var(--nca-amber); }
+.hist-diff-fill.diff-4 { background: #F97316; }
+.hist-diff-fill.diff-5 { background: var(--nca-red); }
+.hist-diff-stat { font-size: .75rem; color: var(--nca-grey); white-space: nowrap; }
+.hist-detail-meta {
+  margin-top: 16px; display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: .75rem; color: var(--nca-grey);
+}
+
 [data-theme="dark"] .weak-area-item { background: #161B22; border-color: #21262D; }
 [data-theme="dark"] .weak-area-icon.critical { background: rgba(204,48,48,.15); }
 [data-theme="dark"] .weak-area-icon.warning { background: rgba(217,119,6,.15); }
@@ -1124,3 +1268,27 @@ kbd {
 
 [data-theme="dark"] .option-btn.correct { background: rgba(40,160,96,.15); border-color: var(--nca-green); }
 [data-theme="dark"] .option-btn.incorrect { background: rgba(204,48,48,.15); border-color: var(--nca-red); }
+
+/* Dark: Progress Tracker */
+[data-theme="dark"] .progress-tracker { background: #161B22; }
+[data-theme="dark"] .progress-divider { background: #30363D; }
+[data-theme="dark"] .progress-icon.streak { background: rgba(217,119,6,.15); }
+[data-theme="dark"] .progress-icon.days { background: rgba(0,86,179,.15); }
+[data-theme="dark"] .progress-icon.questions { background: rgba(124,58,237,.15); }
+[data-theme="dark"] .progress-icon.time { background: rgba(40,160,96,.15); }
+
+/* Dark: Analytics */
+[data-theme="dark"] .ana-table th { border-color: #30363D; }
+[data-theme="dark"] .ana-table td { border-color: #21262D; }
+[data-theme="dark"] .ana-table tr:hover td { background: rgba(0,86,179,.06); }
+[data-theme="dark"] .hist-pct.high { background: rgba(40,160,96,.15); color: #4ADE80; }
+[data-theme="dark"] .hist-pct.mid { background: rgba(217,119,6,.15); color: #FBBF24; }
+[data-theme="dark"] .hist-pct.low { background: rgba(204,48,48,.15); color: #F87171; }
+[data-theme="dark"] .ana-cell.l0 { background: #21262D; }
+[data-theme="dark"] .ana-legend-box.l0 { background: #21262D; }
+
+/* Dark: Enhanced History */
+[data-theme="dark"] .history-detail { background: #0D1117; border-color: #21262D; }
+[data-theme="dark"] .hist-detail-table th { border-color: #30363D; }
+[data-theme="dark"] .hist-detail-table td { border-color: #21262D; }
+[data-theme="dark"] .hist-diff-track { background: #21262D; }

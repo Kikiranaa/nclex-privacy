@@ -93,6 +93,10 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
         <span>Bookmarks</span>
       </a>
+      <a class="nav-item" data-page="analytics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Analytics</span>
+      </a>
       <a class="nav-item" data-page="history">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         <span>Exam History</span>
@@ -190,6 +194,49 @@
               <div class="stat-info">
                 <div class="stat-value" id="dash-best-theta">--</div>
                 <div class="stat-label">Best Ability</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Progress Tracker -->
+          <div class="progress-tracker" id="dash-progress-tracker">
+            <div class="progress-item">
+              <div class="progress-icon streak">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </div>
+              <div class="progress-info">
+                <div class="progress-value" id="dash-streak">0</div>
+                <div class="progress-label">Day Streak</div>
+              </div>
+            </div>
+            <div class="progress-divider"></div>
+            <div class="progress-item">
+              <div class="progress-icon days">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              </div>
+              <div class="progress-info">
+                <div class="progress-value" id="dash-total-days">0</div>
+                <div class="progress-label">Active Days</div>
+              </div>
+            </div>
+            <div class="progress-divider"></div>
+            <div class="progress-item">
+              <div class="progress-icon questions">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+              </div>
+              <div class="progress-info">
+                <div class="progress-value" id="dash-total-q">0</div>
+                <div class="progress-label">Total Questions</div>
+              </div>
+            </div>
+            <div class="progress-divider"></div>
+            <div class="progress-item">
+              <div class="progress-icon time">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="progress-info">
+                <div class="progress-value" id="dash-study-time">0m</div>
+                <div class="progress-label">Study Time</div>
               </div>
             </div>
           </div>
@@ -532,6 +579,127 @@
               <p>No bookmarked questions yet. Use the bookmark icon during exams or study mode.</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ══════════ ANALYTICS PAGE ══════════ -->
+      <div id="page-analytics" class="page">
+        <div class="page-inner">
+          <div class="analytics-header">
+            <h2>Analytics</h2>
+            <p>Deep insights into your study performance and trends.</p>
+          </div>
+
+          <!-- Analytics summary cards -->
+          <div class="stats-row analytics-stats">
+            <div class="stat-card">
+              <div class="stat-icon blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value" id="ana-total-questions">0</div>
+                <div class="stat-label">Questions Answered</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon green">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value" id="ana-total-time">0h</div>
+                <div class="stat-label">Total Study Time</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value" id="ana-streak">0</div>
+                <div class="stat-label">Day Streak</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              </div>
+              <div class="stat-info">
+                <div class="stat-value" id="ana-improvement">--</div>
+                <div class="stat-label">Ability Change</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts row 1: Accuracy Over Time + Difficulty Distribution -->
+          <div class="dash-grid">
+            <div class="dash-card">
+              <h3>Accuracy Over Time</h3>
+              <div id="ana-accuracy-container">
+                <div class="empty-state" id="ana-accuracy-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  <p>Take at least 2 exams to see accuracy trends.</p>
+                </div>
+                <div class="chart-wrapper-sm" id="ana-accuracy-chart-wrap" style="display:none;">
+                  <canvas id="ana-accuracy-chart"></canvas>
+                </div>
+              </div>
+            </div>
+            <div class="dash-card">
+              <h3>Difficulty Distribution</h3>
+              <div id="ana-difficulty-container">
+                <div class="empty-state" id="ana-difficulty-empty">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                  <p>Complete exams to see difficulty breakdown.</p>
+                </div>
+                <div class="chart-wrapper-sm" id="ana-difficulty-chart-wrap" style="display:none;">
+                  <canvas id="ana-difficulty-chart"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Charts row 2: Category Breakdown Table -->
+          <div class="dash-card" style="margin-bottom:24px;">
+            <h3>Category Performance Breakdown</h3>
+            <div id="ana-category-table-container">
+              <div class="empty-state" id="ana-category-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <p>Complete exams to see category analysis.</p>
+              </div>
+              <div id="ana-category-table-wrap" style="display:none;">
+                <table class="ana-table">
+                  <thead>
+                    <tr><th>Category</th><th>Questions</th><th>Correct</th><th>Accuracy</th><th>Trend</th></tr>
+                  </thead>
+                  <tbody id="ana-category-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daily Activity Heatmap -->
+          <div class="dash-card" style="margin-bottom:24px;">
+            <h3>Daily Activity</h3>
+            <div id="ana-activity-container">
+              <div class="empty-state" id="ana-activity-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <p>Take exams to see your daily activity.</p>
+              </div>
+              <div id="ana-activity-wrap" style="display:none;">
+                <div class="ana-activity-grid" id="ana-activity-grid"></div>
+                <div class="ana-activity-legend">
+                  <span>Less</span>
+                  <div class="ana-legend-box l0"></div>
+                  <div class="ana-legend-box l1"></div>
+                  <div class="ana-legend-box l2"></div>
+                  <div class="ana-legend-box l3"></div>
+                  <div class="ana-legend-box l4"></div>
+                  <span>More</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
