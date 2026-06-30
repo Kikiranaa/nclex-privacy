@@ -857,3 +857,61 @@ kbd {
   .q-navigator { padding: 6px 12px; gap: 3px; }
   .q-nav-dot { width: 20px; height: 20px; font-size: .55rem; }
 }
+
+/* ======================================================
+   SETTINGS PAGE
+   ====================================================== */
+.settings-header { margin-bottom: 24px; }
+.settings-header h2 { font-size: 1.3rem; font-weight: 800; color: var(--nca-dark); margin-bottom: 4px; }
+.settings-header p { color: var(--nca-grey); font-size: .9rem; }
+
+.settings-card {
+  background: #fff; border-radius: var(--radius); border: 1px solid #e8ecf0;
+  padding: 0; margin-bottom: 16px; overflow: hidden;
+}
+.settings-card-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 24px; border-bottom: 1px solid #e8ecf0;
+  background: var(--nca-light);
+}
+.settings-card-header svg { color: var(--nca-blue); flex-shrink: 0; }
+.settings-card-header h3 { font-size: .9rem; font-weight: 700; color: var(--nca-dark); }
+
+.settings-field {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 24px; border-bottom: 1px solid #f0f3f7;
+}
+.settings-field:last-child { border-bottom: none; }
+.settings-field-label { font-size: .85rem; font-weight: 600; color: var(--nca-grey); flex-shrink: 0; }
+.settings-field-value { font-size: .85rem; font-weight: 600; color: var(--nca-dark); text-align: right; }
+
+.settings-status-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+}
+.settings-status-badge.approved { background: #dcfce7; color: #166534; }
+
+.theme-toggle-group { display: flex; gap: 6px; }
+.theme-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border: 2px solid #dde3ea; border-radius: 20px;
+  background: #fff; font-size: .82rem; font-weight: 600; color: var(--nca-grey);
+  cursor: pointer; transition: all var(--transition);
+}
+.theme-btn:hover { border-color: var(--nca-blue); color: var(--nca-blue); }
+.theme-btn.active { background: var(--nca-blue); color: #fff; border-color: var(--nca-blue); }
+.theme-btn.active svg { color: #fff; }
+
+.settings-data-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 24px; border-bottom: 1px solid #f0f3f7;
+}
+.settings-data-row:last-child { border-bottom: none; }
+.settings-data-title { font-size: .85rem; font-weight: 600; color: var(--nca-dark); }
+.settings-data-desc { font-size: .78rem; color: var(--nca-grey); margin-top: 2px; }
+
+.settings-about { padding: 20px 24px; text-align: center; }
+.settings-about-brand { font-size: 1.1rem; font-weight: 800; color: var(--nca-blue); margin-bottom: 4px; }
+.settings-about-version { font-size: .82rem; color: var(--nca-grey); font-weight: 500; margin-bottom: 8px; }
+.settings-about-org { font-size: .82rem; color: var(--nca-dark); font-weight: 600; margin-bottom: 12px; }
+.settings-about-disclaimer { font-size: .72rem; color: var(--nca-grey); line-height: 1.5; }

@@ -231,6 +231,7 @@ const LMS = {
     const titles = {
       dashboard: 'Dashboard', setup: 'Start Exam', study: 'Study Mode',
       bookmarks: 'Bookmarks', quiz: 'CAT Exam', results: 'Results', history: 'Exam History',
+      settings: 'Settings',
     };
     $('#topbar-title').textContent = titles[page] || 'Dashboard';
 
@@ -243,6 +244,7 @@ const LMS = {
     if (page === 'setup') initSetupScreen();
     if (page === 'study') StudyMode.init();
     if (page === 'bookmarks') Bookmarks.refresh();
+    if (page === 'settings') Settings.refresh();
   },
 
   refreshDashboard() {
@@ -1061,6 +1063,9 @@ document.addEventListener('keydown', (e) => {
 //  INITIALIZATION
 // =====================================================================
 document.addEventListener('DOMContentLoaded', () => {
+  // Apply saved theme immediately
+  applyTheme(localStorage.getItem('nca_theme') || 'light');
+
   initFirebase();
 
   // Login
@@ -1416,3 +1421,60 @@ const StudyMode = {
     return a;
   },
 };
+
+// =====================================================================
+//  SETTINGS
+// =====================================================================
+const Settings = {
+  refresh() {
+    $('#settings-name').textContent = state.candidate?.name || 'Student';
+    $('#settings-email').textContent = state.user?.email || '--';
+    $('#settings-batch').textContent = state.candidate?.batch || 'NCLEX Candidate';
+
+    const historyCount = getExamHistory().length;
+    $('#settings-history-count').textContent = `${historyCount} exam record${historyCount !== 1 ? 's' : ''} stored locally`;
+
+    const bookmarkCount = Object.keys(Bookmarks.getAll()).length;
+    $('#settings-bookmarks-count').textContent = `${bookmarkCount} bookmarked question${bookmarkCount !== 1 ? 's' : ''}`;
+
+    const current = localStorage.getItem('nca_theme') || 'light';
+    $$('.theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === current);
+    });
+  },
+
+  setTheme(theme) {
+    localStorage.setItem('nca_theme', theme);
+    applyTheme(theme);
+    $$('.theme-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.theme === theme);
+    });
+  },
+
+  clearHistory() {
+    if (!confirm('Delete all exam history? This cannot be undone.')) return;
+    localStorage.removeItem('nca_exam_history');
+    this.refresh();
+  },
+
+  clearBookmarks() {
+    if (!confirm('Remove all bookmarked questions?')) return;
+    localStorage.removeItem('nca_bookmarks');
+    this.refresh();
+  },
+
+  clearCache() {
+    localStorage.removeItem('nca_questions_cache');
+    localStorage.removeItem('nca_questions_cache_time');
+    alert('Question cache cleared. Questions will reload from server on next use.');
+  },
+};
+
+function applyTheme(theme) {
+  if (theme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+  } else {
+    document.documentElement.setAttribute('data-theme', theme);
+  }
+}
