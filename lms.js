@@ -1478,3 +1478,7 @@ function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme);
   }
 }
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (localStorage.getItem('nca_theme') === 'auto') applyTheme('auto');
+});
