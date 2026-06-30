@@ -306,6 +306,9 @@ const LMS = {
 
     // Subject performance bars
     this.renderSubjectBars(history);
+
+    // Weak-topic identification
+    this.renderWeakAreas(history);
   },
 
   renderTrendChart(history) {
@@ -389,6 +392,97 @@ const LMS = {
     }).join('');
   },
 
+  renderWeakAreas(history) {
+    const container = $('#dash-weak-areas');
+    const listEl = $('#weak-areas-list');
+    const countEl = $('#weak-areas-count');
+
+    if (history.length === 0) { container.style.display = 'none'; return; }
+
+    const catMap = {};
+    history.forEach(h => {
+      if (!h.responses) return;
+      h.responses.forEach(r => {
+        const key = r.question?.category || r.question?.subject || 'General';
+        if (!catMap[key]) catMap[key] = { total: 0, correct: 0, subject: r.question?.subject || '' };
+        catMap[key].total++;
+        if (r.isCorrect) catMap[key].correct++;
+      });
+    });
+
+    if (Object.keys(catMap).length === 0) {
+      const subjectMap = {};
+      history.forEach(h => {
+        const s = h.subject || 'All Subjects';
+        if (!subjectMap[s]) subjectMap[s] = { total: 0, correct: 0, subject: s };
+        subjectMap[s].total += h.totalQuestions;
+        subjectMap[s].correct += h.totalCorrect;
+      });
+      Object.assign(catMap, subjectMap);
+    }
+
+    const entries = Object.entries(catMap)
+      .filter(([, d]) => d.total >= 3)
+      .map(([name, d]) => {
+        const pct = Math.round(d.correct / d.total * 100);
+        let severity, icon, rec;
+        if (pct < 40) {
+          severity = 'critical';
+          icon = '!!';
+          rec = `Critical area. Focus study sessions on ${name} questions.`;
+        } else if (pct < 60) {
+          severity = 'warning';
+          icon = '!';
+          rec = `Needs improvement. Practice more ${name} questions to strengthen this area.`;
+        } else if (pct < 75) {
+          severity = 'improving';
+          icon = '~';
+          rec = `Getting there. A few more practice sessions will solidify your knowledge.`;
+        } else {
+          return null;
+        }
+        return { name, pct, total: d.total, correct: d.correct, subject: d.subject, severity, icon, rec };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.pct - b.pct)
+      .slice(0, 5);
+
+    if (entries.length === 0) { container.style.display = 'none'; return; }
+
+    container.style.display = '';
+    countEl.textContent = `${entries.length} area${entries.length !== 1 ? 's' : ''} to review`;
+
+    listEl.innerHTML = entries.map(e => `
+      <div class="weak-area-item">
+        <div class="weak-area-icon ${e.severity}">${e.icon}</div>
+        <div class="weak-area-info">
+          <div class="weak-area-title">${e.name}</div>
+          <div class="weak-area-meta">${e.correct}/${e.total} correct (${e.pct}%) · ${e.subject}</div>
+          <div class="weak-area-rec">${e.rec}</div>
+          <div class="weak-area-bar-track"><div class="weak-area-bar-fill ${e.severity}" style="width:${e.pct}%"></div></div>
+        </div>
+        <div class="weak-area-action">
+          <button class="btn btn-ghost btn-sm" onclick="LMS.practiceWeakArea('${e.subject || ''}')">Practice</button>
+        </div>
+      </div>
+    `).join('');
+  },
+
+  practiceWeakArea(subject) {
+    if (subject && subject !== 'All Subjects') {
+      LMS.navigateTo('study');
+      setTimeout(() => {
+        const sel = $('#study-subject-filter');
+        if ([...sel.options].some(o => o.value === subject)) {
+          sel.value = subject;
+        }
+        StudyMode.loadQuestions();
+      }, 100);
+    } else {
+      LMS.navigateTo('study');
+    }
+  },
+
   refreshHistory() {
     const history = getExamHistory();
     const listEl = $('#history-list');
@@ -445,6 +539,11 @@ function getExamHistory() {
 
 function saveExamToHistory(results, durationMinutes) {
   const history = getExamHistory();
+  const responses = results.responses.map(r => ({
+    isCorrect: r.isCorrect,
+    difficulty: r.difficulty,
+    question: { subject: r.question.subject, category: r.question.category },
+  }));
   history.push({
     date: new Date().toISOString(),
     subject: state.examSubject,
@@ -458,6 +557,7 @@ function saveExamToHistory(results, durationMinutes) {
     avgDifficulty: Math.round(results.avgDifficulty * 100) / 100,
     durationMinutes: Math.round(durationMinutes * 10) / 10,
     stopReason: results.stopReason,
+    responses,
   });
   try {
     localStorage.setItem('nca_exam_history', JSON.stringify(history));

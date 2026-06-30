@@ -917,6 +917,69 @@ kbd {
 .settings-about-disclaimer { font-size: .72rem; color: var(--nca-grey); line-height: 1.5; }
 
 /* ======================================================
+   WEAK AREAS / RECOMMENDATIONS
+   ====================================================== */
+.dash-weak-areas { margin-bottom: 20px; }
+.weak-areas-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.weak-areas-header h3 { font-size: .9rem; font-weight: 700; color: var(--nca-dark); margin: 0; }
+.weak-areas-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 12px;
+  font-size: .72rem; font-weight: 700; text-transform: uppercase;
+  background: #FEF3C7; color: #92400E; letter-spacing: .3px;
+}
+
+.weak-areas-list { display: flex; flex-direction: column; gap: 10px; }
+
+.weak-area-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 14px 18px; border-radius: var(--radius-sm);
+  border: 1px solid #e8ecf0; background: #fff;
+  transition: all var(--transition);
+}
+.weak-area-item:hover { border-color: var(--nca-amber); }
+
+.weak-area-icon {
+  width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; font-weight: 800;
+}
+.weak-area-icon.critical { background: #FEE2E2; color: var(--nca-red); }
+.weak-area-icon.warning { background: #FEF3C7; color: var(--nca-amber); }
+.weak-area-icon.improving { background: #DBEAFE; color: var(--nca-blue); }
+
+.weak-area-info { flex: 1; min-width: 0; }
+.weak-area-title { font-size: .88rem; font-weight: 700; color: var(--nca-dark); margin-bottom: 2px; }
+.weak-area-meta { font-size: .78rem; color: var(--nca-grey); margin-bottom: 6px; }
+.weak-area-rec {
+  font-size: .8rem; color: var(--nca-blue); font-weight: 600;
+  padding: 4px 0;
+}
+
+.weak-area-bar-track {
+  width: 100%; height: 6px; background: #e8ecf0; border-radius: 3px; overflow: hidden; margin-top: 6px;
+}
+.weak-area-bar-fill {
+  height: 100%; border-radius: 3px; transition: width .5s ease;
+}
+.weak-area-bar-fill.critical { background: var(--nca-red); }
+.weak-area-bar-fill.warning { background: var(--nca-amber); }
+.weak-area-bar-fill.improving { background: var(--nca-blue); }
+
+.weak-area-action {
+  flex-shrink: 0; align-self: center;
+}
+
+[data-theme="dark"] .weak-area-item { background: #161B22; border-color: #21262D; }
+[data-theme="dark"] .weak-area-icon.critical { background: rgba(204,48,48,.15); }
+[data-theme="dark"] .weak-area-icon.warning { background: rgba(217,119,6,.15); }
+[data-theme="dark"] .weak-area-icon.improving { background: rgba(59,130,246,.15); }
+[data-theme="dark"] .weak-areas-badge { background: rgba(217,119,6,.15); color: #FBBF24; }
+[data-theme="dark"] .weak-area-bar-track { background: #21262D; }
+
+/* ======================================================
    DARK THEME
    ====================================================== */
 [data-theme="dark"] {
