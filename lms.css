@@ -684,3 +684,176 @@ kbd {
   .stats-row { grid-template-columns: 1fr; }
   .stat-card { padding: 14px; }
 }
+
+/* ======================================================
+   PHASE 2: QUESTION NAVIGATOR
+   ====================================================== */
+.q-navigator {
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+  padding: 8px 16px; background: #fff; border-bottom: 1px solid #e8ecf0;
+  flex-shrink: 0; overflow-x: auto;
+}
+.q-nav-dot {
+  width: 24px; height: 24px; border-radius: 50%; border: 2px solid #dde3ea;
+  background: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: .6rem; font-weight: 700; color: var(--nca-grey); cursor: default;
+  transition: all var(--transition); flex-shrink: 0;
+}
+.q-nav-dot.current { border-color: var(--nca-blue); background: var(--nca-blue-light); color: var(--nca-blue); transform: scale(1.15); }
+.q-nav-dot.correct { border-color: var(--nca-green); background: #DCFCE7; color: var(--nca-green); }
+.q-nav-dot.incorrect { border-color: var(--nca-red); background: #FEE2E2; color: var(--nca-red); }
+.q-nav-dot.bookmarked::after {
+  content: ''; position: absolute; top: -2px; right: -2px;
+  width: 8px; height: 8px; background: var(--nca-amber);
+  border-radius: 50%; border: 1.5px solid #fff;
+}
+.q-nav-dot { position: relative; }
+
+/* ======================================================
+   PHASE 2: BOOKMARK BUTTON
+   ====================================================== */
+.question-card-top {
+  display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;
+}
+.question-card-top .question-badges { margin-bottom: 0; }
+.bookmark-btn {
+  background: none; border: 2px solid #dde3ea; border-radius: 50%;
+  width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all var(--transition); flex-shrink: 0;
+}
+.bookmark-btn svg { width: 18px; height: 18px; color: var(--nca-grey); transition: all var(--transition); }
+.bookmark-btn:hover { border-color: var(--nca-amber); }
+.bookmark-btn:hover svg { color: var(--nca-amber); }
+.bookmark-btn.active { background: #FEF3C7; border-color: var(--nca-amber); }
+.bookmark-btn.active svg { color: var(--nca-amber); fill: var(--nca-amber); }
+
+/* ======================================================
+   PHASE 2: DASHBOARD TREND CHART
+   ====================================================== */
+.dash-trend-container { min-height: 200px; }
+.chart-wrapper-sm { position: relative; width: 100%; height: 220px; }
+
+/* ======================================================
+   PHASE 2: SUBJECT PERFORMANCE BARS
+   ====================================================== */
+.subject-bars { display: flex; flex-direction: column; gap: 14px; }
+.subject-bar-row { display: flex; align-items: center; gap: 12px; }
+.subject-bar-label {
+  width: 120px; font-size: .82rem; font-weight: 600; color: var(--nca-dark);
+  text-align: right; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.subject-bar-track {
+  flex: 1; height: 24px; background: #e8ecf0; border-radius: 12px;
+  overflow: hidden; position: relative;
+}
+.subject-bar-fill {
+  height: 100%; border-radius: 12px; transition: width .6s ease;
+  background: var(--nca-blue);
+}
+.subject-bar-fill.high { background: var(--nca-green); }
+.subject-bar-fill.mid { background: var(--nca-amber); }
+.subject-bar-fill.low { background: var(--nca-red); }
+.subject-bar-stat {
+  width: 90px; font-size: .8rem; font-weight: 600; color: var(--nca-grey); flex-shrink: 0;
+}
+
+/* ======================================================
+   PHASE 2: STUDY MODE
+   ====================================================== */
+.study-header {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  margin-bottom: 24px;
+}
+.study-header h2 { font-size: 1.3rem; font-weight: 800; color: var(--nca-dark); margin-bottom: 4px; }
+.study-header p { color: var(--nca-grey); font-size: .9rem; }
+
+.study-filters {
+  display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;
+  margin-bottom: 20px; padding: 20px; background: #fff;
+  border-radius: var(--radius); border: 1px solid #e8ecf0;
+}
+.study-filter-group { flex: 1; min-width: 160px; }
+.study-filter-group .setup-label { margin-bottom: 6px; }
+
+.study-count {
+  font-size: .85rem; color: var(--nca-grey); font-weight: 600;
+  margin-bottom: 16px; padding-left: 4px;
+}
+
+.study-questions-list { display: flex; flex-direction: column; gap: 10px; }
+
+.study-question-card {
+  background: #fff; border-radius: var(--radius); border: 1px solid #e8ecf0;
+  overflow: hidden;
+}
+.study-question-header {
+  display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+  cursor: pointer; user-select: none; transition: background var(--transition);
+}
+.study-question-header:hover { background: var(--nca-light); }
+.study-q-num {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .75rem; font-weight: 700;
+}
+.study-q-num.diff-1 { background: #dcfce7; color: #166534; }
+.study-q-num.diff-2 { background: #dbeafe; color: #1e40af; }
+.study-q-num.diff-3 { background: #fef9c3; color: #854d0e; }
+.study-q-num.diff-4 { background: #ffedd5; color: #9a3412; }
+.study-q-num.diff-5 { background: #fee2e2; color: #991b1b; }
+.study-q-info { flex: 1; min-width: 0; }
+.study-q-title { font-size: .88rem; font-weight: 600; color: var(--nca-dark); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.study-q-meta { font-size: .75rem; color: var(--nca-grey); margin-top: 2px; }
+.study-q-actions { display: flex; gap: 6px; align-items: center; }
+.study-q-bookmark {
+  background: none; border: none; cursor: pointer; padding: 4px;
+  color: var(--nca-grey); transition: color var(--transition);
+}
+.study-q-bookmark:hover { color: var(--nca-amber); }
+.study-q-bookmark.active { color: var(--nca-amber); }
+.study-q-bookmark svg { width: 18px; height: 18px; }
+.study-q-chevron { color: var(--nca-grey); transition: transform .2s; flex-shrink: 0; }
+.study-question-card.expanded .study-q-chevron { transform: rotate(180deg); }
+
+.study-question-body {
+  display: none; padding: 0 20px 20px; border-top: 1px solid #e8ecf0;
+}
+.study-question-card.expanded .study-question-body { display: block; }
+.study-q-text { font-size: .95rem; line-height: 1.7; color: var(--nca-dark); margin: 16px 0; }
+
+.study-option {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  margin-bottom: 6px; font-size: .9rem; line-height: 1.5;
+  border: 1px solid #e8ecf0; cursor: pointer; transition: all var(--transition);
+}
+.study-option:hover { background: var(--nca-light); border-color: var(--nca-blue); }
+.study-option.revealed-correct { background: #dcfce7; border-color: var(--nca-green); }
+.study-option.revealed-wrong { background: #fee2e2; border-color: var(--nca-red); opacity: .7; }
+.study-option-letter {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .8rem; background: var(--nca-light); color: var(--nca-grey);
+  border: 2px solid #dde3ea;
+}
+.study-option.revealed-correct .study-option-letter { background: var(--nca-green); color: #fff; border-color: var(--nca-green); }
+
+.study-reveal-btn {
+  margin-top: 12px; padding: 8px 16px; background: var(--nca-blue-light);
+  color: var(--nca-blue); border: 1px solid var(--nca-blue); border-radius: var(--radius-sm);
+  font-size: .82rem; font-weight: 600; cursor: pointer; transition: all var(--transition);
+}
+.study-reveal-btn:hover { background: var(--nca-blue); color: #fff; }
+
+.study-rationale-block {
+  margin-top: 16px; display: none;
+}
+.study-rationale-block.visible { display: block; }
+
+@media (max-width: 768px) {
+  .study-filters { flex-direction: column; }
+  .study-filter-group { min-width: 100%; }
+  .subject-bar-label { width: 80px; font-size: .75rem; }
+  .q-navigator { padding: 6px 12px; gap: 3px; }
+  .q-nav-dot { width: 20px; height: 20px; font-size: .55rem; }
+}

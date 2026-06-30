@@ -229,8 +229,8 @@ const LMS = {
     if (navItem) navItem.classList.add('active');
 
     const titles = {
-      dashboard: 'Dashboard', setup: 'Start Exam',
-      quiz: 'CAT Exam', results: 'Results', history: 'Exam History',
+      dashboard: 'Dashboard', setup: 'Start Exam', study: 'Study Mode',
+      bookmarks: 'Bookmarks', quiz: 'CAT Exam', results: 'Results', history: 'Exam History',
     };
     $('#topbar-title').textContent = titles[page] || 'Dashboard';
 
@@ -241,6 +241,8 @@ const LMS = {
     if (page === 'dashboard') this.refreshDashboard();
     if (page === 'history') this.refreshHistory();
     if (page === 'setup') initSetupScreen();
+    if (page === 'study') StudyMode.init();
+    if (page === 'bookmarks') Bookmarks.refresh();
   },
 
   refreshDashboard() {
@@ -296,6 +298,93 @@ const LMS = {
       <span><strong>${total}</strong> total questions</span>
       <span><strong>${subjectCount}</strong> subjects available</span>
     `;
+
+    // Ability trend chart
+    this.renderTrendChart(history);
+
+    // Subject performance bars
+    this.renderSubjectBars(history);
+  },
+
+  renderTrendChart(history) {
+    if (history.length < 2) {
+      $('#dash-trend-empty').style.display = '';
+      $('#dash-trend-chart-wrap').style.display = 'none';
+      return;
+    }
+    $('#dash-trend-empty').style.display = 'none';
+    $('#dash-trend-chart-wrap').style.display = 'block';
+
+    const ctx = document.getElementById('dash-trend-chart').getContext('2d');
+    if (window._trendChart) window._trendChart.destroy();
+
+    const labels = history.map((h, i) => {
+      const d = new Date(h.date);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    const thetaData = history.map(h => Math.round(h.finalTheta * 100) / 100);
+    const accData = history.map(h => Math.round(h.rawAccuracy * 100));
+
+    window._trendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Ability (θ)', data: thetaData, yAxisID: 'y',
+            borderColor: '#0056B3', backgroundColor: 'rgba(0,86,179,.08)',
+            fill: true, tension: 0.3, pointRadius: 4, pointHoverRadius: 7, borderWidth: 2.5,
+          },
+          {
+            label: 'Accuracy %', data: accData, yAxisID: 'y1',
+            borderColor: '#28A060', backgroundColor: 'rgba(40,160,96,.08)',
+            fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 7,
+            borderWidth: 2, borderDash: [4, 4],
+          },
+          {
+            label: 'Passing Standard', data: Array(labels.length).fill(0), yAxisID: 'y',
+            borderColor: '#CC3030', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, fill: false,
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } },
+        scales: {
+          y: { min: -3, max: 3, position: 'left', grid: { color: '#e8ecf0' }, ticks: { font: { size: 10 } }, title: { display: true, text: 'Ability', font: { size: 10 } } },
+          y1: { min: 0, max: 100, position: 'right', grid: { display: false }, ticks: { font: { size: 10 }, callback: v => v + '%' }, title: { display: true, text: 'Accuracy', font: { size: 10 } } },
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+        }
+      }
+    });
+  },
+
+  renderSubjectBars(history) {
+    const container = $('#dash-subject-bars');
+    if (history.length === 0) {
+      container.innerHTML = '<div class="empty-state"><p>Complete exams to see subject breakdown.</p></div>';
+      return;
+    }
+
+    const subjectMap = {};
+    history.forEach(h => {
+      const s = h.subject || 'All Subjects';
+      if (!subjectMap[s]) subjectMap[s] = { total: 0, correct: 0, exams: 0 };
+      subjectMap[s].total += h.totalQuestions;
+      subjectMap[s].correct += h.totalCorrect;
+      subjectMap[s].exams += 1;
+    });
+
+    const entries = Object.entries(subjectMap).sort((a, b) => b[1].exams - a[1].exams);
+    container.innerHTML = entries.map(([subject, data]) => {
+      const pct = data.total > 0 ? Math.round(data.correct / data.total * 100) : 0;
+      const cls = pct >= 70 ? 'high' : pct >= 50 ? 'mid' : 'low';
+      return `<div class="subject-bar-row">
+        <span class="subject-bar-label" title="${subject}">${subject}</span>
+        <div class="subject-bar-track"><div class="subject-bar-fill ${cls}" style="width:${pct}%"></div></div>
+        <span class="subject-bar-stat">${data.correct}/${data.total} (${pct}%)</span>
+      </div>`;
+    }).join('');
   },
 
   refreshHistory() {
@@ -647,6 +736,12 @@ function nextQuestion() {
   // Scroll left pane to top
   const leftScroll = $('.quiz-left-scroll');
   if (leftScroll) leftScroll.scrollTop = 0;
+
+  // Update question navigator
+  renderQuestionNavigator();
+
+  // Update bookmark button
+  updateBookmarkBtn();
 }
 
 function selectOption(index) {
@@ -1033,3 +1128,291 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+// =====================================================================
+//  QUESTION NAVIGATOR (quiz breadcrumb strip)
+// =====================================================================
+function renderQuestionNavigator() {
+  const engine = state.exam;
+  if (!engine) return;
+
+  const nav = $('#q-navigator');
+  const total = engine.maxQuestions;
+  const answered = engine.responses.length;
+  const currentIdx = answered; // 0-indexed current question
+
+  let html = '';
+  for (let i = 0; i < Math.min(total, answered + 1); i++) {
+    let cls = 'q-nav-dot';
+    let label = i + 1;
+
+    if (i < answered) {
+      const r = engine.responses[i];
+      cls += r.isCorrect ? ' correct' : ' incorrect';
+      label = r.isCorrect ? '✓' : '✗';
+      if (Bookmarks.has(r.question.id)) cls += ' bookmarked';
+    } else if (i === currentIdx) {
+      cls += ' current';
+    }
+
+    html += `<div class="${cls}" title="Question ${i + 1}">${label}</div>`;
+  }
+
+  // Show remaining as empty dots (up to a reasonable limit)
+  const remaining = Math.min(total - answered - 1, 20);
+  for (let i = 0; i < remaining; i++) {
+    html += `<div class="q-nav-dot" title="Question ${answered + 2 + i}">${answered + 2 + i}</div>`;
+  }
+  if (total - answered - 1 > 20) {
+    html += `<div class="q-nav-dot" style="border:none;background:none;">...</div>`;
+  }
+
+  nav.innerHTML = html;
+}
+
+// =====================================================================
+//  BOOKMARKS
+// =====================================================================
+const Bookmarks = {
+  _key: 'nca_bookmarks',
+
+  getAll() {
+    try { return JSON.parse(localStorage.getItem(this._key) || '{}'); }
+    catch { return {}; }
+  },
+
+  has(questionId) {
+    return !!this.getAll()[questionId];
+  },
+
+  toggle(questionId, questionData) {
+    const all = this.getAll();
+    if (all[questionId]) {
+      delete all[questionId];
+    } else {
+      all[questionId] = {
+        id: questionId,
+        question: questionData.question,
+        subject: questionData.subject,
+        category: questionData.category,
+        difficulty: questionData.difficulty,
+        options: questionData.options,
+        answer: questionData.answer,
+        rationale_correct: questionData.rationale_correct,
+        rationale_wrong: questionData.rationale_wrong,
+        bookmarkedAt: new Date().toISOString(),
+      };
+    }
+    try { localStorage.setItem(this._key, JSON.stringify(all)); } catch {}
+    return !!all[questionId];
+  },
+
+  clearAll() {
+    if (!confirm('Remove all bookmarked questions?')) return;
+    localStorage.removeItem(this._key);
+    this.refresh();
+  },
+
+  refresh() {
+    const all = this.getAll();
+    const entries = Object.values(all).sort((a, b) =>
+      new Date(b.bookmarkedAt) - new Date(a.bookmarkedAt)
+    );
+
+    const container = $('#bookmarks-list');
+    const clearBtn = $('#clear-bookmarks-btn');
+
+    if (entries.length === 0) {
+      container.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+        <p>No bookmarked questions yet. Use the bookmark icon during exams or study mode.</p>
+      </div>`;
+      clearBtn.style.display = 'none';
+      return;
+    }
+
+    clearBtn.style.display = '';
+    const letters = ['A', 'B', 'C', 'D'];
+
+    container.innerHTML = entries.map((q, i) => {
+      const optionsHtml = q.options.map((opt, idx) => {
+        return `<div class="study-option" data-qid="${q.id}" data-idx="${idx}">
+          <span class="study-option-letter">${letters[idx]}</span>
+          <span>${opt}</span>
+        </div>`;
+      }).join('');
+
+      const wrongRationales = q.rationale_wrong && typeof q.rationale_wrong === 'object'
+        ? Object.values(q.rationale_wrong).filter(v => v).map(t => `<div class="rationale-box wrong-rationale">${t}</div>`).join('')
+        : '';
+
+      return `<div class="study-question-card" id="bm-${q.id}">
+        <div class="study-question-header" onclick="this.parentElement.classList.toggle('expanded')">
+          <div class="study-q-num diff-${q.difficulty}">${DIFF_LABELS[q.difficulty] ? DIFF_LABELS[q.difficulty].charAt(0) : 'M'}</div>
+          <div class="study-q-info">
+            <div class="study-q-title">${q.question}</div>
+            <div class="study-q-meta">${q.subject || ''} · ${q.category || ''} · Difficulty ${q.difficulty}/5</div>
+          </div>
+          <button class="study-q-bookmark active" onclick="event.stopPropagation(); Bookmarks.toggle('${q.id}', ${JSON.stringify(q).replace(/'/g, "\\'")}); document.getElementById('bm-${q.id}').remove(); if(!Object.keys(Bookmarks.getAll()).length) Bookmarks.refresh();">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+          </button>
+          <svg class="study-q-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="study-question-body">
+          <div class="study-q-text">${q.question}</div>
+          ${optionsHtml}
+          <button class="study-reveal-btn" onclick="StudyMode.revealAnswer(this, '${q.id}', ${q.answer})">Show Answer & Rationale</button>
+          <div class="study-rationale-block" id="rationale-bm-${q.id}">
+            <div class="rationale-box correct-rationale">${q.rationale_correct || 'No rationale provided.'}</div>
+            ${wrongRationales}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  },
+};
+
+function toggleBookmark() {
+  const engine = state.exam;
+  if (!engine || !engine.currentQuestion) return;
+  const q = engine.currentQuestion;
+  const isNow = Bookmarks.toggle(q.id, q);
+  updateBookmarkBtn();
+  renderQuestionNavigator();
+}
+
+function updateBookmarkBtn() {
+  const engine = state.exam;
+  if (!engine || !engine.currentQuestion) return;
+  const btn = $('#bookmark-btn');
+  if (Bookmarks.has(engine.currentQuestion.id)) {
+    btn.classList.add('active');
+  } else {
+    btn.classList.remove('active');
+  }
+}
+
+// =====================================================================
+//  STUDY MODE
+// =====================================================================
+const StudyMode = {
+  init() {
+    const sel = $('#study-subject-filter');
+    const currentVal = sel.value;
+    sel.innerHTML = '<option value="All">All Subjects</option>';
+    state.subjects.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s; sel.appendChild(opt);
+    });
+    if (currentVal && [...sel.options].some(o => o.value === currentVal)) {
+      sel.value = currentVal;
+    }
+  },
+
+  loadQuestions() {
+    const subject = $('#study-subject-filter').value;
+    const diff = $('#study-diff-filter').value;
+
+    let filtered = [...state.questions];
+    if (subject !== 'All') {
+      filtered = filtered.filter(q => q.subject === subject);
+    }
+    if (diff !== 'All') {
+      filtered = filtered.filter(q => q.difficulty === parseInt(diff));
+    }
+
+    // Shuffle and limit to 50 for performance
+    filtered = this.shuffle(filtered).slice(0, 50);
+
+    const countEl = $('#study-count');
+    countEl.textContent = `Showing ${filtered.length} question${filtered.length !== 1 ? 's' : ''} (max 50)`;
+
+    const container = $('#study-questions-list');
+    if (filtered.length === 0) {
+      container.innerHTML = `<div class="empty-state"><p>No questions match your filters.</p></div>`;
+      return;
+    }
+
+    const letters = ['A', 'B', 'C', 'D'];
+
+    container.innerHTML = filtered.map((q, i) => {
+      const isBookmarked = Bookmarks.has(q.id);
+      const optionsHtml = q.options.map((opt, idx) => {
+        return `<div class="study-option" data-qid="${q.id}" data-idx="${idx}">
+          <span class="study-option-letter">${letters[idx]}</span>
+          <span>${opt}</span>
+        </div>`;
+      }).join('');
+
+      const wrongRationales = q.rationale_wrong && typeof q.rationale_wrong === 'object'
+        ? Object.values(q.rationale_wrong).filter(v => v).map(t => `<div class="rationale-box wrong-rationale">${t}</div>`).join('')
+        : '';
+
+      const qJson = JSON.stringify(q).replace(/</g, '\\u003c').replace(/'/g, "\\'");
+
+      return `<div class="study-question-card" id="study-${q.id}">
+        <div class="study-question-header" onclick="this.parentElement.classList.toggle('expanded')">
+          <div class="study-q-num diff-${q.difficulty}">${i + 1}</div>
+          <div class="study-q-info">
+            <div class="study-q-title">${q.question}</div>
+            <div class="study-q-meta">${q.subject || ''} · ${q.category || ''} · ${DIFF_LABELS[q.difficulty] || 'Medium'}</div>
+          </div>
+          <button class="study-q-bookmark ${isBookmarked ? 'active' : ''}" onclick="event.stopPropagation(); StudyMode.toggleBookmark('${q.id}', this);">
+            <svg viewBox="0 0 24 24" fill="${isBookmarked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>
+          </button>
+          <svg class="study-q-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="study-question-body">
+          <div class="study-q-text">${q.question}</div>
+          ${optionsHtml}
+          <button class="study-reveal-btn" onclick="StudyMode.revealAnswer(this, '${q.id}', ${q.answer})">Show Answer & Rationale</button>
+          <div class="study-rationale-block" id="rationale-study-${q.id}">
+            <div class="rationale-box correct-rationale">${q.rationale_correct || 'No rationale provided.'}</div>
+            ${wrongRationales}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  },
+
+  toggleBookmark(questionId, btnEl) {
+    const q = state.questions.find(q => q.id === questionId);
+    if (!q) return;
+    const isNow = Bookmarks.toggle(questionId, q);
+    btnEl.classList.toggle('active', isNow);
+    const svg = btnEl.querySelector('svg');
+    svg.setAttribute('fill', isNow ? 'currentColor' : 'none');
+  },
+
+  revealAnswer(btn, questionId, correctIdx) {
+    const card = btn.closest('.study-question-card');
+    const options = card.querySelectorAll('.study-option');
+    options.forEach(opt => {
+      const idx = parseInt(opt.dataset.idx);
+      if (idx === correctIdx) {
+        opt.classList.add('revealed-correct');
+      } else {
+        opt.classList.add('revealed-wrong');
+      }
+    });
+
+    btn.style.display = 'none';
+
+    // Show rationale block
+    const rationaleId = `rationale-study-${questionId}`;
+    let rationaleBlock = document.getElementById(rationaleId);
+    if (!rationaleBlock) {
+      rationaleBlock = document.getElementById(`rationale-bm-${questionId}`);
+    }
+    if (rationaleBlock) rationaleBlock.classList.add('visible');
+  },
+
+  shuffle(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  },
+};
