@@ -1116,6 +1116,69 @@ kbd {
   font-size: .75rem; color: var(--nca-grey);
 }
 
+/* ======================================================
+   STUDY SEARCH BAR
+   ====================================================== */
+.study-search-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border: 1px solid #d9e2ec; border-radius: var(--radius-sm);
+  padding: 10px 16px; margin-bottom: 16px; transition: border-color var(--transition);
+}
+.study-search-bar:focus-within { border-color: var(--nca-blue); box-shadow: 0 0 0 3px rgba(0,86,179,.08); }
+.study-search-bar svg { color: var(--nca-grey); flex-shrink: 0; }
+.study-search-bar .form-input {
+  border: none; background: none; padding: 0; font-size: .9rem;
+  box-shadow: none; flex: 1; outline: none;
+}
+
+/* ======================================================
+   REVIEW MISTAKES
+   ====================================================== */
+.review-stats-badge {
+  background: rgba(204,48,48,.08); color: var(--nca-red); font-size: .78rem;
+  font-weight: 600; padding: 4px 12px; border-radius: 20px;
+}
+.review-miss-badge {
+  display: inline-block; background: rgba(204,48,48,.1); color: var(--nca-red);
+  font-size: .7rem; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* ======================================================
+   NOTES WIDGET
+   ====================================================== */
+.note-widget { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eef2f7; }
+.note-toggle-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid #d9e2ec; border-radius: 6px;
+  padding: 5px 12px; font-size: .78rem; color: var(--nca-grey);
+  cursor: pointer; transition: all var(--transition);
+}
+.note-toggle-btn:hover { border-color: var(--nca-blue); color: var(--nca-blue); }
+.note-editor { margin-top: 8px; }
+.note-textarea {
+  width: 100%; min-height: 70px; border: 1px solid #d9e2ec; border-radius: 8px;
+  padding: 10px; font-family: inherit; font-size: .85rem; resize: vertical;
+  background: #fafbfc; transition: border-color var(--transition);
+}
+.note-textarea:focus { border-color: var(--nca-blue); outline: none; box-shadow: 0 0 0 3px rgba(0,86,179,.08); }
+.note-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+.note-display {
+  margin-top: 8px; padding: 8px 12px; background: rgba(0,86,179,.04);
+  border-radius: 6px; font-size: .82rem; color: var(--nca-grey); border-left: 3px solid var(--nca-blue);
+}
+
+/* ======================================================
+   PRINT REPORT BUTTON
+   ====================================================== */
+.btn-outline {
+  background: transparent; border: 1.5px solid var(--nca-blue); color: var(--nca-blue);
+  padding: 10px 20px; border-radius: var(--radius-sm); font-weight: 600; font-size: .88rem;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  transition: all var(--transition);
+}
+.btn-outline:hover { background: var(--nca-blue-light); }
+
 [data-theme="dark"] .weak-area-item { background: #161B22; border-color: #21262D; }
 [data-theme="dark"] .weak-area-icon.critical { background: rgba(204,48,48,.15); }
 [data-theme="dark"] .weak-area-icon.warning { background: rgba(217,119,6,.15); }
@@ -1268,6 +1331,25 @@ kbd {
 
 [data-theme="dark"] .option-btn.correct { background: rgba(40,160,96,.15); border-color: var(--nca-green); }
 [data-theme="dark"] .option-btn.incorrect { background: rgba(204,48,48,.15); border-color: var(--nca-red); }
+
+/* Dark: Study Search */
+[data-theme="dark"] .study-search-bar { background: #161B22; border-color: #30363D; }
+[data-theme="dark"] .study-search-bar:focus-within { border-color: var(--nca-blue); box-shadow: 0 0 0 3px rgba(0,86,179,.15); }
+
+/* Dark: Review Mistakes */
+[data-theme="dark"] .review-stats-badge { background: rgba(204,48,48,.15); }
+[data-theme="dark"] .review-miss-badge { background: rgba(204,48,48,.15); }
+
+/* Dark: Notes */
+[data-theme="dark"] .note-widget { border-color: #21262D; }
+[data-theme="dark"] .note-toggle-btn { border-color: #30363D; color: var(--nca-grey); }
+[data-theme="dark"] .note-toggle-btn:hover { border-color: var(--nca-blue); }
+[data-theme="dark"] .note-textarea { background: #0D1117; border-color: #30363D; color: #E8ECF0; }
+[data-theme="dark"] .note-display { background: rgba(0,86,179,.08); border-color: var(--nca-blue); }
+
+/* Dark: Print Button */
+[data-theme="dark"] .btn-outline { border-color: var(--nca-blue); color: #60A5FA; }
+[data-theme="dark"] .btn-outline:hover { background: rgba(0,86,179,.15); }
 
 /* Dark: Progress Tracker */
 [data-theme="dark"] .progress-tracker { background: #161B22; }

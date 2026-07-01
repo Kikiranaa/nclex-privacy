@@ -230,8 +230,8 @@ const LMS = {
 
     const titles = {
       dashboard: 'Dashboard', setup: 'Start Exam', study: 'Study Mode',
-      bookmarks: 'Bookmarks', analytics: 'Analytics', quiz: 'CAT Exam',
-      results: 'Results', history: 'Exam History', settings: 'Settings',
+      bookmarks: 'Bookmarks', review: 'Review Mistakes', analytics: 'Analytics',
+      quiz: 'CAT Exam', results: 'Results', history: 'Exam History', settings: 'Settings',
     };
     $('#topbar-title').textContent = titles[page] || 'Dashboard';
 
@@ -240,6 +240,7 @@ const LMS = {
     $('#sidebar-overlay').classList.remove('open');
 
     if (page === 'dashboard') this.refreshDashboard();
+    if (page === 'review') ReviewMistakes.refresh();
     if (page === 'analytics') Analytics.refresh();
     if (page === 'history') this.refreshHistory();
     if (page === 'setup') initSetupScreen();
@@ -1518,6 +1519,7 @@ const StudyMode = {
             <div class="rationale-box correct-rationale">${q.rationale_correct || 'No rationale provided.'}</div>
             ${wrongRationales}
           </div>
+          ${renderNoteWidget(q.id)}
         </div>
       </div>`;
     }).join('');
@@ -1555,6 +1557,22 @@ const StudyMode = {
     if (rationaleBlock) rationaleBlock.classList.add('visible');
   },
 
+  search(query) {
+    const cards = $$('#study-questions-list .study-question-card');
+    const term = query.toLowerCase().trim();
+    let visible = 0;
+    cards.forEach(card => {
+      const text = card.textContent.toLowerCase();
+      const match = !term || text.includes(term);
+      card.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    const countEl = $('#study-count');
+    if (term) {
+      countEl.textContent = `${visible} question${visible !== 1 ? 's' : ''} matching "${query.trim()}"`;
+    }
+  },
+
   shuffle(arr) {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
@@ -1566,8 +1584,275 @@ const StudyMode = {
 };
 
 // =====================================================================
-//  SETTINGS
+//  NOTES (localStorage)
 // =====================================================================
+const Notes = {
+  getAll() {
+    try { return JSON.parse(localStorage.getItem('nca_notes') || '{}'); } catch { return {}; }
+  },
+  get(qId) { return this.getAll()[qId] || ''; },
+  save(qId, text) {
+    const all = this.getAll();
+    if (text.trim()) { all[qId] = text.trim(); } else { delete all[qId]; }
+    try { localStorage.setItem('nca_notes', JSON.stringify(all)); } catch {}
+  },
+  count() { return Object.keys(this.getAll()).length; },
+};
+
+function renderNoteWidget(questionId) {
+  const existing = Notes.get(questionId);
+  return `<div class="note-widget">
+    <button class="note-toggle-btn" onclick="toggleNote(this, '${questionId}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      ${existing ? 'Edit Note' : 'Add Note'}
+    </button>
+    <div class="note-editor" id="note-editor-${questionId}" style="display:none;">
+      <textarea class="note-textarea" id="note-text-${questionId}" placeholder="Add your personal notes here...">${existing}</textarea>
+      <div class="note-actions">
+        <button class="btn btn-ghost btn-sm" onclick="toggleNote(document.querySelector('#note-editor-${questionId}').previousElementSibling, '${questionId}')">Cancel</button>
+        <button class="btn btn-primary btn-sm" onclick="saveNote('${questionId}')">Save Note</button>
+      </div>
+    </div>
+    ${existing ? `<div class="note-display" id="note-display-${questionId}"><strong>Note:</strong> ${existing}</div>` : ''}
+  </div>`;
+}
+
+function toggleNote(btn, qId) {
+  const editor = document.getElementById('note-editor-' + qId);
+  editor.style.display = editor.style.display === 'none' ? '' : 'none';
+}
+
+function saveNote(qId) {
+  const text = document.getElementById('note-text-' + qId).value;
+  Notes.save(qId, text);
+  const editor = document.getElementById('note-editor-' + qId);
+  editor.style.display = 'none';
+  const display = document.getElementById('note-display-' + qId);
+  if (display) {
+    display.innerHTML = text.trim() ? `<strong>Note:</strong> ${text.trim()}` : '';
+    display.style.display = text.trim() ? '' : 'none';
+  } else if (text.trim()) {
+    const widget = editor.closest('.note-widget');
+    const div = document.createElement('div');
+    div.className = 'note-display';
+    div.id = 'note-display-' + qId;
+    div.innerHTML = `<strong>Note:</strong> ${text.trim()}`;
+    widget.appendChild(div);
+  }
+  const toggleBtn = editor.previousElementSibling;
+  if (toggleBtn && toggleBtn.classList.contains('note-toggle-btn')) {
+    toggleBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> ${text.trim() ? 'Edit Note' : 'Add Note'}`;
+  }
+}
+
+// =====================================================================
+//  REVIEW MISTAKES
+// =====================================================================
+const ReviewMistakes = {
+  refresh() {
+    const history = getExamHistory();
+    const catFilter = $('#review-cat-filter').value;
+    const sortBy = $('#review-sort').value;
+
+    const mistakeMap = {};
+    const categories = new Set();
+
+    history.forEach(h => {
+      if (!h.responses) return;
+      h.responses.forEach(r => {
+        if (r.isCorrect) return;
+        const qId = r.question?.category + '_' + (r.question?.subject || '');
+        const cat = r.question?.category || r.question?.subject || 'General';
+        categories.add(cat);
+
+        const q = state.questions.find(sq =>
+          sq.category === r.question?.category && sq.subject === r.question?.subject
+        );
+        if (!q) return;
+
+        if (!mistakeMap[q.id]) {
+          mistakeMap[q.id] = { question: q, missCount: 0, lastMissed: h.date, difficulty: q.difficulty };
+        }
+        mistakeMap[q.id].missCount++;
+        if (h.date > mistakeMap[q.id].lastMissed) mistakeMap[q.id].lastMissed = h.date;
+      });
+    });
+
+    // Also add questions directly from history responses that match state.questions
+    history.forEach(h => {
+      if (!h.responses) return;
+      h.responses.forEach(r => {
+        if (r.isCorrect) return;
+        state.questions.forEach(q => {
+          if (q.subject === r.question?.subject && q.category === r.question?.category && q.difficulty === r.difficulty) {
+            if (!mistakeMap[q.id]) {
+              mistakeMap[q.id] = { question: q, missCount: 0, lastMissed: h.date, difficulty: q.difficulty };
+              const cat = q.category || q.subject || 'General';
+              categories.add(cat);
+            }
+          }
+        });
+      });
+    });
+
+    // Populate category filter
+    const catSel = $('#review-cat-filter');
+    const currentCat = catSel.value;
+    catSel.innerHTML = '<option value="All">All Categories</option>';
+    [...categories].sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c; catSel.appendChild(opt);
+    });
+    if ([...catSel.options].some(o => o.value === currentCat)) catSel.value = currentCat;
+
+    let entries = Object.values(mistakeMap);
+
+    if (catFilter !== 'All') {
+      entries = entries.filter(e => (e.question.category || e.question.subject) === catFilter);
+    }
+
+    if (sortBy === 'frequency') entries.sort((a, b) => b.missCount - a.missCount);
+    else if (sortBy === 'difficulty') entries.sort((a, b) => b.difficulty - a.difficulty);
+    else entries.sort((a, b) => new Date(b.lastMissed) - new Date(a.lastMissed));
+
+    entries = entries.slice(0, 50);
+
+    const badge = $('#review-stats-badge');
+    badge.textContent = `${Object.keys(mistakeMap).length} unique mistakes`;
+
+    const countEl = $('#review-count');
+    countEl.textContent = `Showing ${entries.length} question${entries.length !== 1 ? 's' : ''}`;
+
+    const container = $('#review-questions-list');
+    if (entries.length === 0) {
+      container.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <p>No mistakes found. Keep up the great work!</p>
+      </div>`;
+      return;
+    }
+
+    const letters = ['A', 'B', 'C', 'D'];
+    const DIFF_LABELS = { 1: 'Easy', 2: 'Below Avg', 3: 'Medium', 4: 'Above Avg', 5: 'Hard' };
+
+    container.innerHTML = entries.map((e, i) => {
+      const q = e.question;
+      const optionsHtml = q.options.map((opt, idx) =>
+        `<div class="study-option" data-qid="${q.id}" data-idx="${idx}">
+          <span class="study-option-letter">${letters[idx]}</span>
+          <span>${opt}</span>
+        </div>`
+      ).join('');
+
+      const wrongRationales = q.rationale_wrong && typeof q.rationale_wrong === 'object'
+        ? Object.values(q.rationale_wrong).filter(v => v).map(t => `<div class="rationale-box wrong-rationale">${t}</div>`).join('')
+        : '';
+
+      return `<div class="study-question-card" id="review-${q.id}">
+        <div class="study-question-header" onclick="this.parentElement.classList.toggle('expanded')">
+          <div class="study-q-num diff-${q.difficulty}">${i + 1}</div>
+          <div class="study-q-info">
+            <div class="study-q-title">${q.question}</div>
+            <div class="study-q-meta">
+              ${q.subject || ''} · ${q.category || ''} · ${DIFF_LABELS[q.difficulty] || 'Medium'}
+              <span class="review-miss-badge">Missed ${e.missCount}x</span>
+            </div>
+          </div>
+          <svg class="study-q-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div class="study-question-body">
+          <div class="study-q-text">${q.question}</div>
+          ${optionsHtml}
+          <button class="study-reveal-btn" onclick="StudyMode.revealAnswer(this, '${q.id}', ${q.answer})">Show Answer & Rationale</button>
+          <div class="study-rationale-block" id="rationale-review-${q.id}">
+            <div class="rationale-box correct-rationale">${q.rationale_correct || 'No rationale provided.'}</div>
+            ${wrongRationales}
+          </div>
+          ${renderNoteWidget(q.id)}
+        </div>
+      </div>`;
+    }).join('');
+  },
+};
+
+// =====================================================================
+//  PRINT REPORT
+// =====================================================================
+function printReport() {
+  const resultsPage = $('#page-results');
+  if (!resultsPage) return;
+
+  const printWin = window.open('', '_blank');
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+  printWin.document.write(`<!DOCTYPE html><html><head><title>Exam Report — NCA NCLEX-RN</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; color: #1a1a1a; }
+    .report-header { text-align: center; border-bottom: 2px solid #0056B3; padding-bottom: 16px; margin-bottom: 24px; }
+    .report-header h1 { color: #0056B3; font-size: 1.4rem; margin: 0 0 4px; }
+    .report-header p { color: #666; font-size: .85rem; margin: 0; }
+    .verdict { text-align: center; font-size: 1.5rem; font-weight: 700; margin: 16px 0; }
+    .verdict.pass { color: #28A060; }
+    .verdict.fail { color: #CC3030; }
+    .stats-row { display: flex; gap: 16px; margin-bottom: 20px; }
+    .stat-box { flex: 1; background: #f5f8fc; border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-box .val { font-size: 1.3rem; font-weight: 700; }
+    .stat-box .lbl { font-size: .75rem; color: #666; }
+    .meta-info { background: #f9fafb; border-radius: 8px; padding: 12px 16px; font-size: .85rem; margin-bottom: 20px; line-height: 1.8; }
+    .review-item { border: 1px solid #e8ecf0; border-radius: 8px; padding: 12px; margin-bottom: 10px; page-break-inside: avoid; }
+    .review-q { font-weight: 600; margin-bottom: 6px; }
+    .review-opt { padding: 3px 8px; margin: 2px 0; font-size: .85rem; border-radius: 4px; }
+    .review-opt.correct { background: #e6f7ef; color: #1a7a45; }
+    .review-opt.wrong { background: #fce8e8; color: #a82020; }
+    .review-opt.neutral { color: #555; }
+    h3 { color: #0056B3; border-bottom: 1px solid #e8ecf0; padding-bottom: 6px; margin-top: 24px; }
+    @media print { body { padding: 0; } .stats-row { gap: 8px; } }
+  </style></head><body>`);
+
+  const verdict = $('#results-verdict');
+  const meta = $('#results-meta');
+  const now = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const candidateName = state.candidate?.name || state.user?.email || 'Student';
+
+  printWin.document.write(`
+    <div class="report-header">
+      <h1>NCA NCLEX-RN — Exam Report</h1>
+      <p>Dhaliwal's New Careers Academy · ${now}</p>
+      <p>Candidate: ${candidateName}</p>
+    </div>
+    <div class="verdict ${verdict.classList.contains('pass') ? 'pass' : 'fail'}">${verdict.textContent}</div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="val">${$('#r-stat-questions').textContent}</div><div class="lbl">Questions</div></div>
+      <div class="stat-box"><div class="val">${$('#r-stat-correct').textContent}</div><div class="lbl">Correct</div></div>
+      <div class="stat-box"><div class="val">${$('#r-stat-accuracy').textContent}</div><div class="lbl">Accuracy</div></div>
+      <div class="stat-box"><div class="val">${$('#r-stat-avg-diff').textContent}</div><div class="lbl">Avg Difficulty</div></div>
+    </div>
+    <div class="meta-info">${meta.innerHTML}</div>
+  `);
+
+  // Add question review
+  const reviewItems = $$('#question-review-list .review-item');
+  if (reviewItems.length > 0) {
+    printWin.document.write('<h3>Question Review</h3>');
+    reviewItems.forEach(item => {
+      const qText = item.querySelector('.review-q-text')?.textContent || '';
+      const options = item.querySelectorAll('.review-option');
+      let optHtml = '';
+      options.forEach(opt => {
+        let cls = 'neutral';
+        if (opt.classList.contains('is-correct')) cls = 'correct';
+        else if (opt.classList.contains('is-selected-wrong')) cls = 'wrong';
+        optHtml += `<div class="review-opt ${cls}">${opt.textContent}</div>`;
+      });
+      printWin.document.write(`<div class="review-item"><div class="review-q">${qText}</div>${optHtml}</div>`);
+    });
+  }
+
+  printWin.document.write(`<div style="text-align:center; margin-top:30px; color:#999; font-size:.75rem;">&copy; 2026 New Careers Academy</div></body></html>`);
+  printWin.document.close();
+  setTimeout(() => printWin.print(), 500);
+}
+
 // =====================================================================
 //  HISTORY DETAIL TOGGLE
 // =====================================================================
@@ -1840,6 +2125,9 @@ const Settings = {
     const bookmarkCount = Object.keys(Bookmarks.getAll()).length;
     $('#settings-bookmarks-count').textContent = `${bookmarkCount} bookmarked question${bookmarkCount !== 1 ? 's' : ''}`;
 
+    const notesCount = Notes.count();
+    $('#settings-notes-count').textContent = `${notesCount} note${notesCount !== 1 ? 's' : ''} saved`;
+
     const current = localStorage.getItem('nca_theme') || 'light';
     $$('.theme-btn').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.theme === current);
@@ -1863,6 +2151,12 @@ const Settings = {
   clearBookmarks() {
     if (!confirm('Remove all bookmarked questions?')) return;
     localStorage.removeItem('nca_bookmarks');
+    this.refresh();
+  },
+
+  clearNotes() {
+    if (!confirm('Delete all personal notes?')) return;
+    localStorage.removeItem('nca_notes');
     this.refresh();
   },
 
